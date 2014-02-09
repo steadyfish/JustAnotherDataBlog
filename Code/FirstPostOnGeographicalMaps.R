@@ -1,62 +1,85 @@
-#install.packages('mapdata')
-install.packages('sp') 
-install.packages('maptools')
-install.packages('rgeos')
-install.packages('RColorBrewer')
-library('sp') # a package for spatial data
-library('ggplot2')
-library('plyr') #required for fortify which converts 'sp' data to polygons data to be used with ggplot2
-library('rgeos') #required for maptools
-library('maptools') #required for fortify - region
-library('sqldf')
-library('RColorBrewer')
+######## Packages ########
+checkAndDownload<-function(packageNames) {
+  for(packageName in packageNames) {
+    if(!isInstalled(packageName)) {
+      install.packages(packageName,repos="http://lib.stat.cmu.edu/R/CRAN") 
+    } 
+    library(packageName,character.only=TRUE,quietly=TRUE,verbose=FALSE)
+  }
+}
+
+isInstalled <- function(mypkg){
+  is.element(mypkg, installed.packages()[,1])
+}
+
+packages <- c("sp","ggplot2","plyr","rgeos","maptools","sqldf","RColorBrewer")
+checkAndDownload(packages)
+# 'sp'  a package for spatial data
+# 'plyr' required for fortify which converts 'sp' data to 
+#polygons data to be used with ggplot2
+# 'rgeos' required for maptools
+# 'maptools' required for fortify - region
+
+
+################ Data Input ##############
 
 #get the nation-wide map data with state boundaries
 con <- url("http://biogeo.ucdavis.edu/data/gadm2/R/IND_adm1.RData")
 load(con)
 close(con)
 
-#get the data from indian government data website about ___
+#get the data from indian government data website about powerSuply position for a particular month
+data_url = "http://data.gov.in/access-point-download-count?url=http://data.gov.in/sites/default/files/powerSupplyNov04.csv&nid=34321"
 nov04 <- read.table(
-  file="http://data.gov.in/access-point-download-count?url=http://data.gov.in/sites/default/files/powerSupplyNov04.csv&nid=34321",
+  file=data_url,
   header=TRUE,
   sep=",",
   as.is=TRUE)
 power = nov04
-#Adhoc Data cleaning
+
+#get the state codes file
+#(data dictionary with indian states mapped to a 2 letter state code)
+stateCodes <- read.table(
+  file="D:/JustAnotherDataBlog/Data/IndiaStateCodes.csv",
+  header=TRUE,
+  sep=",",
+  as.is=TRUE)
+
+########## Adhoc Data cleaning #########
+
+#renaming the important columns
 colnames(power)
 colnames(power)[1] = "State"
 colnames(power)[2] = "Demand"
 colnames(power)[3] = "Supplies"
 colnames(power)[4] = "Net Surplus"
 colnames(power)
+#adjusting power supply position in these states based on geographic area
+#area numbers obtained from wikipedia
 WB_Area <- 88752
 Sikkim_Area <- 7096
 Jharkhand_Area <-79714
 WB_Sikkim_Prop <- WB_Area / (WB_Area + Sikkim_Area)
 WB_Jharkhand_Prop <- WB_Area / (WB_Area + Jharkhand_Area)
-#some more data cleaning
+
 #1.West Bengal and Sikkim to be split in some ratio:ratio of areas
 WB1 <- power[power[, "State" ]== "W  B + Sikkim" , -1] * WB_Sikkim_Prop
 SK <- power[power[, "State" ]== "W  B + Sikkim" , -1] - WB1
 
-#2.DVC numbers to be divided between Jharkhand and West Bengal: by ration of areas
+#2.DVC numbers to be divided between Jharkhand and West Bengal: by ratio of areas
 WB2 <- power[power[, "State" ]== "DVC" , -1] * WB_Jharkhand_Prop
 power[power[, "State" ]== "Jharkhand" , -1] <- power[power[, "State" ]== "Jharkhand" , -1] +
      power[power[, "State" ]== "DVC" , -1] - WB2
-
 WB = WB1 + WB2
+
 #3. Tripura: not present in some of the datasets
+
 #4. Andaman and Nicobar, Lakshdweep not part of the analysis
+
 power = rbind(power,cbind(State="West Bengal",WB),cbind(State="Sikkim",SK))
 
 
-#get the state codes file
-stateCodes <- read.table(
-  file="D:/JustAnotherDataBlog/Data/IndiaStateCodes.csv",
-  header=TRUE,
-  sep=",",
-  as.is=TRUE)
+######### Preparing data for visualisation ###########
 
 #merge power data with state codes file
 power_stateCodes <- sqldf("select a.*,b.* from stateCodes as a inner join power as b on a.State = b.State")
@@ -65,19 +88,6 @@ power_stateCodes <- sqldf("select a.*,b.* from stateCodes as a inner join power 
 sum(power_stateCodes$Demand) == power[power[, "State" ]== "All India" , 2]
 power_stateCodes$Net_check = power_stateCodes$Supplies - power_stateCodes$Demand
 sum(power_stateCodes$Net_check - power_stateCodes$Net_Surplus)
-
-#H P, 
-#J & K, 
-#Uttaranchal, 
-#Chattisgarh, 
-#Daman & Diu, 
-#D.N. Haveli, 
-#Pondicherry, 
-#DVC, 
-#Orissa, 
-#W B + Sikkim
-#Andaman and Nicobar
-#Lakshdweep
 
 as.data.frame(gadm)
 gadm@data
@@ -99,6 +109,7 @@ sum(gadm@data$NAME_1==power_states$State_gadm)==nrow(gadm@data)
 
 gadm <- spCbind(gadm,power_states)
 plotclr <- rev(brewer.pal(length(levels(gadm@data$Severity)),"Blues"))
+
 #using spplot
 png(file="D:/JustAnotherDataBlog/Plots/FirstPost_PS_Pos_Nov_04_Ind_spplot.png",width=500,height=400)
 
