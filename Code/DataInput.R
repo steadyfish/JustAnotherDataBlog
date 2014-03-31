@@ -32,45 +32,27 @@ getData <- function(t){
 }
 
 currentItr = 0
-JSONList1 = getJSONDoc(link="http://data.gov.in/api/datastore/resource.json?",
-                      res_id="5255d770-6cc9-44bc-befe-e65eff5b51e2",
-                      api_key="4a6b520b59fab36f4c78f8bac1a0afcf",
-                      offset=currentItr,
-                      no_elements=5)
+returnCount = 1
+while(returnCount>0){
+  JSONList = getJSONDoc(link="http://data.gov.in/api/datastore/resource.json?",
+                         res_id="5255d770-6cc9-44bc-befe-e65eff5b51e2",
+                         api_key="4a6b520b59fab36f4c78f8bac1a0afcf",
+                         offset=currentItr,
+                         no_elements=100)
+  DataStage1 = ldply(lapply(getData(JSONList),t),data.frame, stringsAsFactors = FALSE)
+  if(currentItr == 0) {
+    hotelData = DataStage1
+    hotelFieldType = ldply(lapply(getFieldType(JSONList),t),data.frame, stringsAsFactors = FALSE)
+  }
+  else hotelData = rbind(hotelData, DataStage1)
+  returnCount = getCount(JSONList)
+  currentItr = currentItr + 1  
+}
 
-currentItr = 1
-JSONList2 = getJSONDoc(link="http://data.gov.in/api/datastore/resource.json?",
-                       res_id="5255d770-6cc9-44bc-befe-e65eff5b51e2",
-                       api_key="4a6b520b59fab36f4c78f8bac1a0afcf",
-                       offset=currentItr,
-                       no_elements=5)
-
-currentItr = 0
-JSONList3 = getJSONDoc(link="http://data.gov.in/api/datastore/resource.json?",
-                       res_id="5255d770-6cc9-44bc-befe-e65eff5b51e2",
-                       api_key="4a6b520b59fab36f4c78f8bac1a0afcf",
-                       offset=currentItr,
-                       no_elements=10)
-hotelData1 = ldply(lapply(getData(JSONList1),t),data.frame, stringsAsFactors = FALSE)
-hotelData2 = ldply(lapply(getData(JSONList2),t),data.frame, stringsAsFactors = FALSE)
-hotelData3_bind = rbind(hotelData1, hotelData2)
-hotelData3 = ldply(lapply(getData(JSONList3),t),data.frame, stringsAsFactors = FALSE)
-#Example function calls
-#getFieldNames(JSONList)
-#getCount(JSONList)
-#getFieldType(JSONList)
-
-#Future extensions: get field type information, map to corresponding R fields
-
-
-#list to dataframe
-#3.return value is a data.frame, all the cells are text
-hotelData = ldply(lapply(getData(JSONList),t),data.frame, stringsAsFactors = FALSE)
-hotelFieldType = ldply(lapply(getFieldType(JSONList),t),data.frame, stringsAsFactors = FALSE)
+save(hotelData, file=file.path(w_dir,"Data/hotelData.RData"))
+save(hotelFieldType, file=file.path(w_dir,"Data/hotelFieldType.RData"))
 
 #to do or next commit:
-#recursive pings to get data, additional parameter for the json link
-#1 use one of hotelData2, hotelData3 going forward
 #2 try is there s an easy, better way of doing these conversion from list to a data.table
 #3 resolve the issue of all the fields being treated as text
 #It would have been a lot easier if they had APIs in place 
