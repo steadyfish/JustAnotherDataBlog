@@ -31,6 +31,10 @@ getData <- function(t){
   t[[5]]
 }
 
+
+myfunc <- function(lst_elmnt){
+  as.data.frame(t(unlist(lst_elmnt)), stringsAsFactors = FALSE)
+}
 currentItr = 0
 returnCount = 1
 while(returnCount>0){
@@ -39,13 +43,17 @@ while(returnCount>0){
                          api_key="4a6b520b59fab36f4c78f8bac1a0afcf",
                          offset=currentItr,
                          no_elements=100)
-  DataStage1 = ldply(lapply(getData(JSONList),t),data.frame, stringsAsFactors = FALSE)
+  DataStage1 = ldply(getData(JSONList),myfunc)
+  print(currentItr)
+  print(is(DataStage1$id))
+  returnCount = getCount(JSONList)
   if(currentItr == 0) {
     hotelData = DataStage1
-    hotelFieldType = ldply(lapply(getFieldType(JSONList),t),data.frame, stringsAsFactors = FALSE)
+    hotelFieldType = ldply(getFieldType(JSONList),myfunc)
   }
-  else hotelData = rbind(hotelData, DataStage1)
-  returnCount = getCount(JSONList)
+  else if(returnCount > 0) hotelData = rbind(hotelData, DataStage1)
+  print(currentItr)
+  print(is(hotelData$id))
   currentItr = currentItr + 1  
 }
 
