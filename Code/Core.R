@@ -9,8 +9,11 @@ checkAndDownload<-function(packageNames) {
   }
 }
 
-# function to heck whether a particular package is already installed
+# function to check whether a particular package is already installed
 # e.g. isInstalled("plyr")
 isInstalled <- function(mypkg){
   is.element(mypkg, installed.packages()[,1])
 }
+
+#function to trip leading and trailing spaces
+trim <- function (x) gsub("^\\s+|\\s+$", "", x)
