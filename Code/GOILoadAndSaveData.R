@@ -17,13 +17,13 @@ api_key = read.table(
   as.is=TRUE)
 
 res = subset(resourceList, resource_name == "hotels")
-hotelDetails = acquire_x_data(x = res[1], res_id = res[2], api_key = api_key)
+hotelDetails = acquire_x_alldata(x = res[1], res_id = res[2], api_key = api_key)
 
 res = subset(resourceList, resource_name == "pincode")
-pincodeDetails = acquire_x_data(x = res[1], res_id = res[2], api_key = api_key)
+pincodeDetails = acquire_x_alldata(x = res[1], res_id = res[2], api_key = api_key)
 
 res = subset(resourceList, resource_name == "commodities")
-commoditiesDetails = acquire_x_data(x = res[1], res_id = res[2], api_key = api_key)
+commoditiesDetails = acquire_x_alldata(x = res[1], res_id = res[2], api_key = api_key)
 
 save(hotelDetails, file=file.path(w_dir,"Data/hotelDetails.RData"))
 

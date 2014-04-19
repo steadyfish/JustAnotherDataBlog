@@ -33,7 +33,7 @@ getData <- function(t){
 toDataFrame <- function(lst_elmnt){
   as.data.frame(t(unlist(lst_elmnt)), stringsAsFactors = FALSE)
 }
-acquire_x_data <- function(x,res_id,api_key){
+acquire_x_alldata <- function(x,res_id,api_key){
   currentItr = 0
   returnCount = 1
   while(returnCount>0){
