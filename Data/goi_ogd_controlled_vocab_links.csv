@@ -1,0 +1,6 @@
+name,link
+states,http://vocab.nic.in/rest.php/states/json
+sectors,http://vocab.nic.in/rest.php/sectors/json
+subsectors,http://vocab.nic.in/rest.php/sectors/subsectors/json
+countries,http://vocab.nic.in/rest.php/country/json
+languages,http://vocab.nic.in/rest.php/lang/json
