@@ -1,12 +1,24 @@
+---
+title: "India Mean and Seasonal Temperature Trends"
+output:
+  html_document:
+  fig_width: 6
+  fig_height: 4
+
+---
+
+```{r, results = 'hide'}  
 # ogdindiar sample analysis
 library(devtools)
 devtools::install_github("steadyfish/ogdindiar")
-install.packages("dygraphs")
-install.packages("magrittr")
-install.packages("RColorBrewer")
-install.packages("dplyr")
-install.packages("tidyr")
+# install.packages("dygraphs")
+# install.packages("magrittr")
+# install.packages("RColorBrewer")
+# install.packages("dplyr")
+# install.packages("tidyr")
+```
 
+```{r}
 library(ogdindiar)
 library(xts)
 library(dygraphs)
@@ -15,12 +27,19 @@ library(RColorBrewer)
 library(dplyr)
 library(tidyr)
 
+# get your own api key as described in ogdindiar vignette here - 
+# https://github.com/steadyfish/ogdindiar/blob/master/vignettes/basic-usage-vignette.md
+
 your_api_key = read.table(
-  file="Data/goi_api_key_do_not_share.csv",
+  file="../Data/goi_api_key_do_not_share.csv",
   header=TRUE,
   sep=",",
   as.is=TRUE)
 
+print(getwd())
+```
+
+```{r}
 mean_temp_ls = fetch_data(res_id = "98fe9271-a59d-4834-b05b-fd5ddb94ac01",
                             api_key = your_api_key)
 
@@ -40,12 +59,12 @@ mean_temp_long$yr_qr = paste(mean_temp_long$year, mean_temp_long$quarter_num)
 mean_temp_long %<>% 
   select(yr_qr, annual, seasonal)
 
-mean_temp_xts = xts(x = mean_temp_data[ ,-c(1:3)], order.by = as.Date(mean_temp_data[ , 3] %>% as.character, format = "%Y"))
-
 mean_temp_long %>% names
 mean_temp_xts = xts(x = mean_temp_long[ , c(2:3)], order.by = as.yearqtr(mean_temp_long[ , 1]))
 
-clr = RColorBrewer::brewer.pal(2, "Set1")
+clr = RColorBrewer::brewer.pal(3, "Set1")
+```
+
 
 ```{r, fig.width=6, fig.height=2.5}
 dygraph(mean_temp_xts, main = "India Mean Temperatures", ylab = "Temp (C)") %>%
