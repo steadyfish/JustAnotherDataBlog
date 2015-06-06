@@ -65,7 +65,7 @@ clr = RColorBrewer::brewer.pal(3, "Set1")
 ```
 
 
-```{r, fig.width=6, fig.height=2.5}
+```{r, fig.width=9, fig.height=2.5}
 dygraph(mean_temp_xts, main = "India Mean Temperatures", ylab = "Temp (C)") %>%
   dyOptions(colors = clr[1:2], 
             includeZero = TRUE) %>%
