@@ -36,7 +36,6 @@ your_api_key = read.table(
   sep=",",
   as.is=TRUE)
 
-print(getwd())
 ```
 
 ```{r}
