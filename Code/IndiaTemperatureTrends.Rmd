@@ -27,21 +27,16 @@ library(RColorBrewer)
 library(dplyr)
 library(tidyr)
 
+sessionInfo()
+
 # get your own api key as described in ogdindiar vignette here - 
 # https://github.com/steadyfish/ogdindiar/blob/master/vignettes/basic-usage-vignette.md
-
-your_api_key = read.table(
-  file="../Data/goi_api_key_do_not_share.csv",
-  header=TRUE,
-  sep=",",
-  as.is=TRUE)
 
 ```
 
 ```{r}
-mean_temp_ls = fetch_data(res_id = "98fe9271-a59d-4834-b05b-fd5ddb94ac01",
-                            api_key = your_api_key)
-
+mean_temp_ls = fetch_data(res_id = "98fe9271-a59d-4834-b05b-fd5ddb94ac01")
+                            
 mean_temp_data = mean_temp_ls[[1]]
 
 mean_temp_data %>% names
