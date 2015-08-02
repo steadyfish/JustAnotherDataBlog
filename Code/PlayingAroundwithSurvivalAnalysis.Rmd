@@ -1,6 +1,7 @@
 ---
-title: "Playing Around With Survival Analysis"
-output: html_document
+title: "Playing Around With Survival Analysis - 1"
+output: 
+  html_document: 
   fig_width: 6
   fig_height: 4
 
@@ -8,23 +9,29 @@ output: html_document
 
 
 
-Objective: 
+## Objective: 
+
 1. Estimate survival function estimate for given time-to-event data. Here, event considered is a binary event.
 2. Compare survival curve estimates for 2 segments of data.
 
-Solution:
+
+## Solution:
+
 We can use `survival` package to accomplish this. 
-1. `Surv` function to get the data in the right format 
+
+1. `Surv` function to get the data in the right format.
 2. which will then be passed tp `survfit` function to compute simple Kaplan-Meier estimator.
 3. `survdiff` function to test if difference between 2 survival functions is significant.
 
-Code:
+
+## Code:
+
 ```{r}
 # install.packages("OIsurv")
 # install.packages("survsim")
 # install.packages("broom")
 library(OIsurv)
-library(help=KMsurv)
+# library(help=KMsurv)
 library(dplyr)
 library(broom)
 library(ggplot2)
@@ -34,7 +41,7 @@ library(survsim)
 
 ```{r real_dataset}
 # Real dataset (From KMSurv package)
-help(tongue)
+# help(tongue)
 data(tongue)
 head(tongue)
 summary(tongue)
@@ -45,7 +52,6 @@ tongue2 = tongue %>%
 
 # Converting into a Surv object 
 tongue2_surv <- Surv(tongue2$time, tongue2$delta)
-tongue2_surv
 
 # Getting KM estimator
 tongue2_survfit = survfit(tongue2_surv ~ 1)
@@ -54,30 +60,69 @@ glance(tongue2_survfit)
 
 # Graphically Comparing KM estimator for 2 tumors
 tongue_survfit = survfit(Surv(time = time, event = delta) ~ type, data = tongue)
-glance(tongue_survfit)
 plot(tongue_survfit, lty = 2:3)
 legend(100, .8, c("Aneuploid", "Diploid"), lty = 2:3) 
 
-ggplot(tidy(tongue_survfit), aes(time, estimate, fill = strata)) + 
+# ggplot2 version of the plot
+tongue_tidy = tidy(tongue_survfit)
+mx = max(tongue_tidy$n.censor)
+ggplot(tongue_tidy, aes(time, estimate, fill = strata)) + 
   geom_line() +
+  geom_point(aes(shape = as.factor(n.censor)), size = 3) + 
+  scale_shape_manual(values=c(NA, 1:mx))+
   geom_ribbon(aes(ymin=conf.low, ymax=conf.high), alpha=.25)
 
 # Statistical tests for comparison
 survdiff(Surv(time = time, event = delta) ~ type, data = tongue, rho = 0) # log-rank, default
-survdiff(Surv(time = time, event = delta) ~ type, data = tongue, rho = 1) # Peto & Peto modification of the Gehan-Wilcoxon test
-survdiff(Surv(time = time, event = delta) ~ type, data = tongue, rho = -1)
 
 # rho > 0 implies higher weight is given to initial part of the survival curve
 # rho < 0 implies higher weight is given to latter part of the survival curve
 
 ```
 
+
+### Simulating a dataset using `simple.surv.sim` function from `survsim` package.
+
+* **Time-to-event:** Assumed to be following weibull distribution with p = 1.5 i.e. the mode of the time to event is closer to median then for exponential distribution (p = 1)
+* **Time-to-censoring:** Assumed to be following weibull distribution with p = 10 i.e. censoring is happening mostly in the latter part of the survival curve.
+* **Covariate:** 1 Binary covariate with p = .7 and beta of 0.6
+
 ```{r simulated_dataset}
+set.seed(2365)
+d1 = simple.surv.sim(n = 500, foltime = 1000, dist.ev = 'weibull', anc.ev = 1.5, beta0.ev = 2, # event dist - weibull with p = 1.5
+                     dist.cens = 'weibull', anc.cens = 10, beta0.cens = 2.01, # censoring dist - weibull with p = 10
+#                      z = list(c("weibull", 1)), #assuming independent observations i.e. no within subject correlation 
+                     beta = list(c(.6)), x = list(c("bern", .7)) # 1 binary covariate
+                     )
+
+# View(d1)
+
+summary(d1)
+summary(as.data.frame(d1))
+
+d1_survfit = survfit(Surv(time = start, time2 = stop, event = status) ~ x, data = d1)
+d1_survfit = survfit(Surv(time = stop, event = status) ~ x, data = d1) # same as above
+
+plot(d1_survfit, lty = 2:3)
+legend(100, .8, c("x=0", "x=1"), lty = 2:3) 
+
+# ggplot2 version of the plot
+d1_tidy = tidy(d1_survfit)
+mx = max(d1_tidy$n.censor)
+ggplot(d1_tidy, aes(time, estimate, fill = strata)) + 
+  geom_line() +
+  geom_point(aes(shape = as.factor(n.censor)), size = 2) + 
+  scale_shape_manual(values=c(NA, 1:mx))+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high), alpha=.25)
+
+# Statistical tests for comparison
+survdiff(Surv(time = stop, event = status) ~ x, data = d1, rho = 0) 
 
 ```
-Ref:
 
-http://anson.ucdavis.edu/~hiwang/teaching/10fall/R_tutorial%201.pdf
-http://www.utstat.utoronto.ca/reid/sta442f/2009/fox-survival.pdf
+## References:
 
+* http://anson.ucdavis.edu/~hiwang/teaching/10fall/R_tutorial%201.pdf
+* http://www.utstat.utoronto.ca/reid/sta442f/2009/fox-survival.pdf
+* http://www.jstatsoft.org/v59/i02/paper  
   
