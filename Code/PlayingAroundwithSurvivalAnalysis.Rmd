@@ -1,0 +1,83 @@
+---
+title: "Playing Around With Survival Analysis"
+output: html_document
+  fig_width: 6
+  fig_height: 4
+
+---
+
+
+
+Objective: 
+1. Estimate survival function estimate for given time-to-event data. Here, event considered is a binary event.
+2. Compare survival curve estimates for 2 segments of data.
+
+Solution:
+We can use `survival` package to accomplish this. 
+1. `Surv` function to get the data in the right format 
+2. which will then be passed tp `survfit` function to compute simple Kaplan-Meier estimator.
+3. `survdiff` function to test if difference between 2 survival functions is significant.
+
+Code:
+```{r}
+# install.packages("OIsurv")
+# install.packages("survsim")
+# install.packages("broom")
+library(OIsurv)
+library(help=KMsurv)
+library(dplyr)
+library(broom)
+library(ggplot2)
+library(survsim)
+```
+
+
+```{r real_dataset}
+# Real dataset (From KMSurv package)
+help(tongue)
+data(tongue)
+head(tongue)
+summary(tongue)
+
+# Analyzing just one type of tumor (Aneuploid Tumor)
+tongue2 = tongue %>% 
+  filter(type == 1) 
+
+# Converting into a Surv object 
+tongue2_surv <- Surv(tongue2$time, tongue2$delta)
+tongue2_surv
+
+# Getting KM estimator
+tongue2_survfit = survfit(tongue2_surv ~ 1)
+plot(tongue2_survfit)
+glance(tongue2_survfit)
+
+# Graphically Comparing KM estimator for 2 tumors
+tongue_survfit = survfit(Surv(time = time, event = delta) ~ type, data = tongue)
+glance(tongue_survfit)
+plot(tongue_survfit, lty = 2:3)
+legend(100, .8, c("Aneuploid", "Diploid"), lty = 2:3) 
+
+ggplot(tidy(tongue_survfit), aes(time, estimate, fill = strata)) + 
+  geom_line() +
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high), alpha=.25)
+
+# Statistical tests for comparison
+survdiff(Surv(time = time, event = delta) ~ type, data = tongue, rho = 0) # log-rank, default
+survdiff(Surv(time = time, event = delta) ~ type, data = tongue, rho = 1) # Peto & Peto modification of the Gehan-Wilcoxon test
+survdiff(Surv(time = time, event = delta) ~ type, data = tongue, rho = -1)
+
+# rho > 0 implies higher weight is given to initial part of the survival curve
+# rho < 0 implies higher weight is given to latter part of the survival curve
+
+```
+
+```{r simulated_dataset}
+
+```
+Ref:
+
+http://anson.ucdavis.edu/~hiwang/teaching/10fall/R_tutorial%201.pdf
+http://www.utstat.utoronto.ca/reid/sta442f/2009/fox-survival.pdf
+
+  
