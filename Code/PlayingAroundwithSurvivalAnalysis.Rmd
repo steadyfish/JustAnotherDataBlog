@@ -45,7 +45,11 @@ library(survsim)
 data(tongue)
 head(tongue)
 summary(tongue)
+```
 
+This dataset is about 80 male subjects who were diagnosed with one of the 2 types of cancer of the tongue. Time tp death is expressed in weeks. More info on this can be found from the package documentation for this dataset using `help(tongue)`.
+
+```{r}
 # Analyzing just one type of tumor (Aneuploid Tumor)
 tongue2 = tongue %>% 
   filter(type == 1) 
@@ -56,13 +60,32 @@ tongue2_surv <- Surv(tongue2$time, tongue2$delta)
 # Getting KM estimator
 tongue2_survfit = survfit(tongue2_surv ~ 1)
 plot(tongue2_survfit)
-glance(tongue2_survfit)
+```
 
+* The above plot shows Kaplan Meier estimator of the survival function (solid line) along with the confidence interval (dotted lines).
+* The `+` signs represent censoring i.e. subjects for whom we don't have any readings available after that week. The only thing we know is the subject didn't die until that point in time.
+
+
+```{r}
+glance(tongue2_survfit)
+```
+
+The median value of 93 implies, 50% of the subjects died within 93 weeks of diagnosis.
+
+```{r}
 # Graphically Comparing KM estimator for 2 tumors
 tongue_survfit = survfit(Surv(time = time, event = delta) ~ type, data = tongue)
-plot(tongue_survfit, lty = 2:3)
+plot(tongue_survfit, lty = 2:3, xlab = "weeks", ylab = "Proporation Survival")
 legend(100, .8, c("Aneuploid", "Diploid"), lty = 2:3) 
+```
 
+* The above plot compares the KM estimator for the survival functions for the 2 types of cancer. 
+* Shown below is a `ggplot2` version of the same plot alongwith the confidence intervals (shaded). 
+* Different symbols (circles, triangles, etc.) represent no. of observations censored at that time.
+* since the confidence interval for type=2 strata slightly overlaps the type=1 strata, we can't really say if the survival functions are different for the 2 types of cancer. Let's resort to statistical tests then.
+
+
+```{r}
 # ggplot2 version of the plot
 tongue_tidy = tidy(tongue_survfit)
 mx = max(tongue_tidy$n.censor)
@@ -70,22 +93,35 @@ ggplot(tongue_tidy, aes(time, estimate, fill = strata)) +
   geom_line() +
   geom_point(aes(shape = as.factor(n.censor)), size = 3) + 
   scale_shape_manual(values=c(NA, 1:mx))+
-  geom_ribbon(aes(ymin=conf.low, ymax=conf.high), alpha=.25)
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high), alpha=.25) + 
+  xlab("weeks") + 
+  ylab("Proportion Survival")
+```
 
+We can compare the survival curves using various statistical tests using `survdiff` function. Apart from the usual formula and data arguments it takes `rho` is an argument. Setting different values of `rho` leads to different kinds of test. In general -
+* `rho` > 0 implies higher weight is given to initial part of the survival curve
+* `rho` < 0 implies higher weight is given to latter part of the survival curve
+Depending on the value of rho we can get different results as can be seen in the below example.
+
+```{r}
 # Statistical tests for comparison
 survdiff(Surv(time = time, event = delta) ~ type, data = tongue, rho = 0) # log-rank, default
 
-# rho > 0 implies higher weight is given to initial part of the survival curve
-# rho < 0 implies higher weight is given to latter part of the survival curve
+survdiff(Surv(time = time, event = delta) ~ type, data = tongue, rho = 1) 
 
 ```
+
+It outputs a chi-squared statistic as well as p-value which can be used to determine whether the difference is significant at certain significance level.
 
 
 ### Simulating a dataset using `simple.surv.sim` function from `survsim` package.
 
 * **Time-to-event:** Assumed to be following weibull distribution with p = 1.5 i.e. the mode of the time to event is closer to median then for exponential distribution (p = 1)
 * **Time-to-censoring:** Assumed to be following weibull distribution with p = 10 i.e. censoring is happening mostly in the latter part of the survival curve.
-* **Covariate:** 1 Binary covariate with p = .7 and beta of 0.6
+* **Covariate:** 1 Binary covariate with p = .7 and beta of 0.6. (In the following post I'll try to reverse-engineer this beta using coxph or other similar models)
+
+Following is the same analysis using this simulated dataset. Try and see if you can make sense of code and the output. 
+
 
 ```{r simulated_dataset}
 set.seed(2365)
@@ -103,7 +139,7 @@ summary(as.data.frame(d1))
 d1_survfit = survfit(Surv(time = start, time2 = stop, event = status) ~ x, data = d1)
 d1_survfit = survfit(Surv(time = stop, event = status) ~ x, data = d1) # same as above
 
-plot(d1_survfit, lty = 2:3)
+plot(d1_survfit, lty = 2:3, xlab = "time", ylab = "Proporation Survival")
 legend(100, .8, c("x=0", "x=1"), lty = 2:3) 
 
 # ggplot2 version of the plot
@@ -113,7 +149,9 @@ ggplot(d1_tidy, aes(time, estimate, fill = strata)) +
   geom_line() +
   geom_point(aes(shape = as.factor(n.censor)), size = 2) + 
   scale_shape_manual(values=c(NA, 1:mx))+
-  geom_ribbon(aes(ymin=conf.low, ymax=conf.high), alpha=.25)
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high), alpha=.25) + 
+  xlab("time") + 
+  ylab("Proportion Survival")
 
 # Statistical tests for comparison
 survdiff(Surv(time = stop, event = status) ~ x, data = d1, rho = 0) 
