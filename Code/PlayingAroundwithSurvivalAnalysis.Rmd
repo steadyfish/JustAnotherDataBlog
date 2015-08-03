@@ -99,6 +99,7 @@ ggplot(tongue_tidy, aes(time, estimate, fill = strata)) +
 ```
 
 We can compare the survival curves using various statistical tests using `survdiff` function. Apart from the usual formula and data arguments it takes `rho` is an argument. Setting different values of `rho` leads to different kinds of test. In general -
+
 * `rho` > 0 implies higher weight is given to initial part of the survival curve
 * `rho` < 0 implies higher weight is given to latter part of the survival curve
 Depending on the value of rho we can get different results as can be seen in the below example.
