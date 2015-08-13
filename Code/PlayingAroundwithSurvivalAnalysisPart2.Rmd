@@ -9,10 +9,8 @@ output:
 ## Objective: 
 
 1. Find out effect of covariates on hazard ratio without making any assumption about the shape of the hazard function.
-2. Validate proportional hazards assumption. 
-3. Compute hazard function. (?)
-2. Compare survival curve estimates for 2 segments of data.
-
+2. Interpret the model outputs. Evaluate model summary, coefficient significance.
+3. Validate proportional hazards assumption. 
 
 ## Solution:
 
@@ -21,24 +19,23 @@ This can be done using Cox Propotional Hazard model. (No time-varying covariates
 `survival` package has `coxph` function to accomplish this. 
 
 1. `Surv` function to get the data in the right format, incorporating censoring information.
-2. which will then be passed to `coxph` function alongwith the covariate(s) to find out the effect.
+2. which will then be passed to `coxph` function alongwith the covariate(s) to find out their effect.
 3. `cox.zph` to validate proportional hazard assumption.
 
 
 ## Code:
 
-
-Analyse real dataset using coxph model. The data should have at least 1 continuous covariate.
-See whether the distributional assumptions have a significant impact on the results.
-Play around with different model assumptions.
-Evaluate model summary, coefficient significance.
-
-```{r}
-library(OIsurv)
-library(dplyr)
-library(broom)
-library(ggplot2)
-library(survsim)
+```{r, message=FALSE }
+library(magrittr)
+{
+  library(OIsurv)
+  library(dplyr)
+  library(broom)
+  library(ggplot2)
+  library(survsim)
+} 
+# %>%
+#   suppressMessages()
 
 ```
 
@@ -54,18 +51,28 @@ data(tongue)
 
 This dataset is about 80 male subjects who were diagnosed with one of the 2 types of cancer of the tongue. Time tp death is expressed in weeks. More info on this can be found from the package documentation for this dataset using `help(tongue)`.
 
-`coxph` model with cancer `type` as covariate. 
+Shown below is `coxph` model with cancer `type` as covariate. 
 
 ```{r basic coxph}
 # COX PH
 tongue_coxph = coxph(Surv(time = time, event = delta) ~ as.factor(type), data = tongue)
 tongue_coxph_tidy = tidy(tongue_coxph)
 tongue_coxph_tidy # equivalent of print()
-glance(tongue_coxph) # equivalent of summary()
-plot(survfit(tongue_coxph, newdata = as.data.frame(cbind(type = 1)))) # for prediction, only the inputs/covariates need to be provided
 ```
 
-To test the proportional hazards assumption we can use `cox.zph` function. It tests correlation between Schoenfeld residuals and (transformed) time using a chi-square test. For this test, p-value less than certain threshold (say 0.5) would imply the correlation between the residuals and (transformed) time is significant and proportional hazards assumption does not hold.
+* The confidence interval for the coefficient estimate [`r tongue_coxph_tidy["conf.low"]`, `r tongue_coxph_tidy["conf.high"]`] contains 0, implies the relationship is not significant.
+
+* The likelihood ratio test against the null model (below) has p-value of `r glance(tongue_coxph)["p.value.log"]` which again supports this.
+
+```{r basic coxph 2}
+glance(tongue_coxph) # equivalent of summary()
+# plot(survfit(tongue_coxph, newdata = as.data.frame(cbind(type = 1)))) # for prediction, only the inputs/covariates need to be provided
+```
+
+Now, even though the coefficient is not significant, we can test and see if the model assumptions are satisfied.
+
+* The proportional hazards assumption essentially means the coefficient remains constant over time. So, if we can find correlation between time and the coefficient and test if that's significant or not, we'll able to test the proportional hazards assumption.
+* To test this assumption we can use `cox.zph` function. It tests correlation between Schoenfeld residuals and (transformed) time using a chi-square test. For this test, p-value less than certain threshold (say 0.5) would imply the correlation between the residuals and (transformed) time is significant and proportional hazards assumption does not hold. ([More info on schoenfeld residual](http://psfaculty.ucdavis.edu/bsjjones/coxslides2.pdf))
 
 ```{r checking assumptions for cox ph}
 # Validating Cox PH Assumptions
@@ -73,9 +80,9 @@ validate_coxph = cox.zph(tongue_coxph, transform = "km")
 validate_coxph
 ```
 
-From the low p-value, the proportional hazards assumption does not seem to hold here. 
+* From the low p-value, the proportional hazards assumption does not seem to hold here.
 
-The plot below shows the scaled Schoenfeld residuals. Ideally for PH assumption this should be a flat straight line.
+* The plot below shows the scaled Schoenfeld residuals. Ideally for PH assumption to hold, this should be a flat straight line. (Like any other residuals, these residuals should exhibit random pattern. )
 
 ```{r checking assumptions for cox ph 2}
 plot(validate_coxph)
@@ -84,23 +91,37 @@ abline(h=0)
 ```
 
 
+```{r checking assumptions for cox ph 3 ggplot2}
+validate_gg = data.frame(cbind(x = validate_coxph[["x"]],
+                               y = validate_coxph[["y"]]))
+names(validate_gg) = c("transformed_t", "scaled_schoenfeld_residual")
+
+ggplot(data = validate_gg, aes(x = transformed_t, y = scaled_schoenfeld_residual)) +
+  geom_point() +
+  geom_smooth(method = "loess")
+
+```
+
+
 ### Simulating a dataset using `simple.surv.sim` function from `survsim` package.
 
-(The same dataset was used in prior post)
+(The same dataset was used in [prior post](http://justanotherdatablog.blogspot.com/2015/08/survival-analysis-1.html))
 
 * **Time-to-event:** Assumed to be following weibull distribution with p = 1.5 i.e. the mode of the time to event is closer to median then for exponential distribution (p = 1). Exponential distribution has it's mode at 0, as we increase p, the mode moves to the right.
 * **Time-to-censoring:** Assumed to be following weibull distribution with p = 10 i.e. censoring is happening mostly in the latter part of the survival curve.
-* **Covariate:** 1 Binary covariate with p = .7 and beta of 0.6. (In the following post I'll try to reverse-engineer this beta using coxph or other similar models)
+* **Covariate:** 1 Binary covariate with p = .7 and beta of 0.6. (In the following post I'll try to reverse-engineer this beta using `coxph` or other similar models)
 
 Following is the same analysis using this simulated dataset. Try and see if you can make sense of code and the output. 
 
 
 ```{r simulated_dataset}
 set.seed(2365)
-d1 = simple.surv.sim(n = 500, foltime = 1000, dist.ev = 'weibull', anc.ev = 1.5, beta0.ev = 2, # event dist - weibull with p = 1.5
-                     dist.cens = 'weibull', anc.cens = 10, beta0.cens = 2.01, # censoring dist - weibull with p = 10
-#                      z = list(c("weibull", 1)), #assuming independent observations i.e. no within subject correlation 
-                     beta = list(c(.6)), x = list(c("bern", .7)) # 1 binary covariate
+d1 = simple.surv.sim(# event dist - weibull with p = 1.5
+  n = 500, foltime = 1000, dist.ev = 'weibull', anc.ev = 1.5, beta0.ev = 2, 
+  # censoring dist - weibull with p = 10
+  dist.cens = 'weibull', anc.cens = 10, beta0.cens = 2.01,
+  # 1 binary covariate
+  beta = list(c(.6)), x = list(c("bern", .7)) 
                      )
 # View(d1)
 
@@ -120,7 +141,7 @@ glance(d1_coxph) # equivalent of summary()
 # plot(survfit(d1_coxph, newdata = as.data.frame(cbind(type = 1)))) # for prediction, only the inputs/covariates need to be provided
 ```
 
-The coefficient for covariate `x` is `-0.822`, quiet different from the parameter we used to simulate this data i.e. `0.6`. This is happening partly due to the fact that for `coxph` we are finding the coefficients using partial likelihood without making any assumptions around the time-to-event distribution.
+The coefficient for covariate `x` is significant but is `r d1_coxph_tidy$estimate`, quiet different from the parameter we used to simulate this data i.e. `0.6`. This is happening partly due to the fact that for `coxph` we are finding the coefficients using partial likelihood without making any assumptions around the time-to-event distribution.
 
 ```{r sim checking assumptions for cox ph}
 # Validating Cox PH Assumptions
@@ -128,12 +149,32 @@ validate_d1_coxph = cox.zph(d1_coxph, transform = "km")
 validate_d1_coxph
 ```
 
-From not so low p-value, the proportional hazards assumption holds here. 
+From not so low p-value (`r validate_d1_coxph$p`), the proportional hazards assumption holds here. 
 
-The scaled Schoenfeld residuals plot below also looks flat for the most part.
+The scaled Schoenfeld residuals plot below also looks flat for the most part, seems to be increasing for higher values of time.
 
 ```{r sim checking assumptions for cox ph 2}
 plot(validate_d1_coxph)
 abline(h=0)
+```
+
+Below is a ggplot2 version using `loess` fit telling the same story.
+
+```{r sim checking assumptions for cox ph 3 ggplot2}
+validate_d1_gg = data.frame(cbind(x = validate_d1_coxph[["x"]],
+                               y = validate_d1_coxph[["y"]]))
+names(validate_d1_gg) = c("transformed_t", "scaled_schoenfeld_residual")
+
+ggplot(data = validate_d1_gg, aes(x = transformed_t, y = scaled_schoenfeld_residual)) +
+  geom_point() +
+  geom_smooth(method = "loess")
 
 ```
+
+
+## References:
+
+* http://anson.ucdavis.edu/~hiwang/teaching/10fall/R_tutorial%201.pdf
+* http://www.utstat.utoronto.ca/reid/sta442f/2009/fox-survival.pdf
+* http://www.jstatsoft.org/v59/i02/paper  
+* http://psfaculty.ucdavis.edu/bsjjones/coxslides2.pdf
