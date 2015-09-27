@@ -1,0 +1,86 @@
+---
+title: "Exploring Regular Expressions | RegEx for Data Cleaning"
+author: "Dhrumin Shah"
+date: "Sunday, September 20, 2015"
+output: html_document
+---
+
+# Exploring RegEx usage through a specific text data cleaning exercise.
+
+# simulating dataset
+# 2 columns - col1: id
+#   col2: pipe separated text
+
+Create a clean dataset with 3 variables of interest
+
+```{r clean}
+var1_text = c("Sachin", "Sourav", "Rahul", "Laxman")
+var2_text = c("Virat", "Jinx", "Pujara", "Rohit")
+sep1 = ":"
+sep2 = "|"
+no_rows = 100
+set.seed(9653)
+d1 = data.frame(id = 1:no_rows,
+            var1 = sample(x = var1_text, size = 10, replace = TRUE),
+            var2 = sample(x = var2_text, size = 10, replace = TRUE),
+            var3 = paste0("my_var", 1:no_rows),
+            stringsAsFactors = FALSE)
+
+```
+
+Combine variable names with variable values to make it slightly unclean.
+
+```{r unclean1}
+d2 = d1
+var_names = names(d1)[-1]
+d2$var1_pair = paste(var_names[1], d2$var1, sep = sep1)
+d2$var2_pair = paste(var_names[2], d2$var2, sep = sep1)
+d2$var3_pair = paste(var_names[3], d2$var3, sep = sep1)
+
+d2 = d2[, c("id", "var1_pair", "var2_pair", "var3_pair")]
+```
+
+Combine the variable name, variable value pairs for 3 variables into a single variable separated by a delimiter.
+
+```{r unclean2}
+d3 = d2
+d3$text = paste(d3$var1_pair, d3$var2_pair, d3$var3_pair, sep = sep2)
+d3 = d3[ , c("id", "text")]
+
+```  
+
+Now the objective is to operate on dataset `d3` to somehow arrive at dataset `d1`.
+
+
+Couple of assumptions about this dataset make this problem a very simple one -
+1. All the instances (rows) contain **exactly 3** variables.
+2. The order of the variables is the same i.e. `var1` followed by `var2` followed by `var3`. 
+
+```{r cleansing1}
+d2_rev = d3
+
+# a = gregexpr(pattern = "([^|]*)|([^|]*)|([^|]*)", text = d2_rev$text, perl = TRUE)
+# b = regmatches(x = d2_rev$text, m = a)
+var_split = strsplit(x = d2_rev$text, split = paste0("[",sep2,"]"), perl = TRUE)
+d2_rev = cbind(d2_rev, data.frame(matrix(unlist(var_split), nrow=100, byrow=T), stringsAsFactors = FALSE))
+d2_rev = d2_rev[ , c("id", "X1", "X2", "X3")]
+```
+
+```{r cleaning2}
+d3_rev = d2_rev
+
+split_key_val = function(col, d_in, separator){
+  l_key_val_split = strsplit(x = d_in[, col], split = paste0("[", separator, "]"), perl = TRUE)  
+  d_key_val = data.frame(matrix(unlist(l_key_val_split), nrow=100, byrow=T))
+  d_out = cbind(id = d_in[ , c("id")], d_key_val)
+  return(d_out)
+}
+key_val_split = strsplit(x = d3_rev[, "X1"], split = paste0("[", sep1, "]"), perl = TRUE)
+key_val_df = data.frame(matrix(unlist(key_val_split), nrow=100, byrow=T))
+
+tttt = split_key_val("X1", d3_rev, sep1)
+var_names = names(d3_rev)[-1]
+
+temp = lapply(var_names, split_key_val, d3_rev, sep1)
+temp2 = data.frame(matrix(unlist(temp)))
+```
