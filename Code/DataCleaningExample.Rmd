@@ -5,7 +5,7 @@ output: html_document
 
 ## Objective: 
 
-Clean a dataset with single column containing multiple variables as delimited key-value pairs.
+Clean a dataset with single column containing multiple variables as delimited `key-value` pairs.
 
 ## Solution:
 
@@ -27,7 +27,7 @@ d1 = data.frame(id = 1:no_rows,
             current = sample(x = var2_text, size = 10, replace = TRUE),
             garbage = paste0("my_var", 1:no_rows),
             stringsAsFactors = FALSE)
-
+knitr::kable(head(d1))
 ```
 
 Combining variable names (`keys`) with variable `values` to make it slightly unclean.
@@ -40,9 +40,10 @@ d2$var2_pair = paste(var_names[2], d2$current, sep = sep1)
 d2$var3_pair = paste(var_names[3], d2$garbage, sep = sep1)
 
 d2 = d2[, c("id", "var1_pair", "var2_pair", "var3_pair")]
+knitr::kable(head(d2))
 ```
 
-Combining the `key-value` pairs for these variables into a single variable separated by a delimiter.
+Combining the `key-value` pairs for these variables into a single variable separated by a delimiter. Also, removing certain pairs and altering the order of the pairs.
 
 ```{r unclean2}
 d3 = d2
@@ -73,7 +74,7 @@ knitr::kable(head(d3))
 Couple of assumptions about this dataset make this problem a non-trivial one -
 
 1. Not all the instances (rows) contain **exactly 3** variables (`key-value` pairs).
-2. The order of the variables is **not the same** i.e. `var1` not always followed by `var2` and `var2` is not always followed by `var3`. 
+2. The order of the variables is **not the same** i.e. `retired` is not always followed by `current` and `current` is not always followed by `garbage`. 
 
 ```{r libs, message = FALSE}
 library(plyr)
@@ -108,7 +109,7 @@ knitr::kable(head(d2_rev))
 * step 2: Separating `value`s from `key`s i.e.
 `key1: value1`  -----> `key1` and `value1`
 
-The next step is to separate `key: val` pairs such that the `val` values are stored in corresponding `key` columns. For this, we'll first need to go from the wide version that we have now to long version of the dataset using `tidyr::gather`. After that, it's again applying `tidyr::separate` to separate `key`s from `value`s. The last step is to convert this long dataset again to a wide one using `tidyr::spread`.
+The next step is to separate `key: val` pairs such that the `val` values are stored in corresponding `key` columns. For this, we'll first need to go from the wide version that we have now to long version of the dataset using `tidyr::gather`. After that, it's again applying `tidyr::separate` to separate `key`s from `value`s. The last step is to convert this long dataset back to a wide one using `tidyr::spread`. Too long an explanation, better see the code -
 
 
 ```{r cleaning2}
@@ -126,7 +127,7 @@ Final result -
 knitr::kable(head(d3_rev))
 ```
 
-This is very similar to the original clean dataset except for the fact that there are some `NA` values that we deliberately introduced trying to make this example more generic.
+This is very similar to the original clean dataset `d1` except for the column order and some `NA` values (generated cause of missing values we introduced while creating the test dataset, in order to make this example more generic).
 
 ```{r op_clean, echo = FALSE}
 knitr::kable(head(d1))

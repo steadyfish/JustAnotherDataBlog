@@ -66,7 +66,7 @@ img {
 
 <div id="objective" class="section level2">
 <h2>Objective:</h2>
-<p>Clean a dataset with single column containing multiple variables as delimited key-value pairs.</p>
+<p>Clean a dataset with single column containing multiple variables as delimited <code>key-value</code> pairs.</p>
 </div>
 <div id="solution" class="section level2">
 <h2>Solution:</h2>
@@ -85,7 +85,56 @@ d1 = data.frame(id = 1:no_rows,
             retired = sample(x = var1_text, size = 10, replace = TRUE),
             current = sample(x = var2_text, size = 10, replace = TRUE),
             garbage = paste0(&quot;my_var&quot;, 1:no_rows),
-            stringsAsFactors = FALSE)</code></pre>
+            stringsAsFactors = FALSE)
+knitr::kable(head(d1))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">id</th>
+<th align="left">retired</th>
+<th align="left">current</th>
+<th align="left">garbage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="left">Sachin</td>
+<td align="left">Pujara</td>
+<td align="left">my_var1</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="left">Rahul</td>
+<td align="left">Virat</td>
+<td align="left">my_var2</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="left">Laxman</td>
+<td align="left">Virat</td>
+<td align="left">my_var3</td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="left">Sourav</td>
+<td align="left">Virat</td>
+<td align="left">my_var4</td>
+</tr>
+<tr class="odd">
+<td align="right">5</td>
+<td align="left">Sachin</td>
+<td align="left">Virat</td>
+<td align="left">my_var5</td>
+</tr>
+<tr class="even">
+<td align="right">6</td>
+<td align="left">Sachin</td>
+<td align="left">Virat</td>
+<td align="left">my_var6</td>
+</tr>
+</tbody>
+</table>
 <p>Combining variable names (<code>keys</code>) with variable <code>values</code> to make it slightly unclean.</p>
 <pre class="r"><code>d2 = d1
 var_names = names(d1)[-1]
@@ -93,8 +142,57 @@ d2$var1_pair = paste(var_names[1], d2$retired, sep = sep1)
 d2$var2_pair = paste(var_names[2], d2$current, sep = sep1)
 d2$var3_pair = paste(var_names[3], d2$garbage, sep = sep1)
 
-d2 = d2[, c(&quot;id&quot;, &quot;var1_pair&quot;, &quot;var2_pair&quot;, &quot;var3_pair&quot;)]</code></pre>
-<p>Combining the <code>key-value</code> pairs for these variables into a single variable separated by a delimiter.</p>
+d2 = d2[, c(&quot;id&quot;, &quot;var1_pair&quot;, &quot;var2_pair&quot;, &quot;var3_pair&quot;)]
+knitr::kable(head(d2))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">id</th>
+<th align="left">var1_pair</th>
+<th align="left">var2_pair</th>
+<th align="left">var3_pair</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="left">retired:Sachin</td>
+<td align="left">current:Pujara</td>
+<td align="left">garbage:my_var1</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="left">retired:Rahul</td>
+<td align="left">current:Virat</td>
+<td align="left">garbage:my_var2</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="left">retired:Laxman</td>
+<td align="left">current:Virat</td>
+<td align="left">garbage:my_var3</td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="left">retired:Sourav</td>
+<td align="left">current:Virat</td>
+<td align="left">garbage:my_var4</td>
+</tr>
+<tr class="odd">
+<td align="right">5</td>
+<td align="left">retired:Sachin</td>
+<td align="left">current:Virat</td>
+<td align="left">garbage:my_var5</td>
+</tr>
+<tr class="even">
+<td align="right">6</td>
+<td align="left">retired:Sachin</td>
+<td align="left">current:Virat</td>
+<td align="left">garbage:my_var6</td>
+</tr>
+</tbody>
+</table>
+<p>Combining the <code>key-value</code> pairs for these variables into a single variable separated by a delimiter. Also, removing certain pairs and altering the order of the pairs.</p>
 <pre class="r"><code>d3 = d2
 d3$text = NA
 d3$text[4 * (1:25) - 3] = paste(d3$var1_pair[4 * (1:25) - 3], 
@@ -149,7 +247,7 @@ d3 = d3[ , c(&quot;id&quot;, &quot;text&quot;)]</code></pre>
 <p>Couple of assumptions about this dataset make this problem a non-trivial one -</p>
 <ol style="list-style-type: decimal">
 <li>Not all the instances (rows) contain <strong>exactly 3</strong> variables (<code>key-value</code> pairs).</li>
-<li>The order of the variables is <strong>not the same</strong> i.e. <code>var1</code> not always followed by <code>var2</code> and <code>var2</code> is not always followed by <code>var3</code>.</li>
+<li>The order of the variables is <strong>not the same</strong> i.e. <code>retired</code> is not always followed by <code>current</code> and <code>current</code> is not always followed by <code>garbage</code>.</li>
 </ol>
 <pre class="r"><code>library(plyr)
 library(dplyr)
@@ -218,7 +316,7 @@ d2_rev = d3 %&gt;%
 <ul>
 <li>step 2: Separating <code>value</code>s from <code>key</code>s i.e. <code>key1: value1</code> —–&gt; <code>key1</code> and <code>value1</code></li>
 </ul>
-<p>The next step is to separate <code>key: val</code> pairs such that the <code>val</code> values are stored in corresponding <code>key</code> columns. For this, we’ll first need to go from the wide version that we have now to long version of the dataset using <code>tidyr::gather</code>. After that, it’s again applying <code>tidyr::separate</code> to separate <code>key</code>s from <code>value</code>s. The last step is to convert this long dataset again to a wide one using <code>tidyr::spread</code>.</p>
+<p>The next step is to separate <code>key: val</code> pairs such that the <code>val</code> values are stored in corresponding <code>key</code> columns. For this, we’ll first need to go from the wide version that we have now to long version of the dataset using <code>tidyr::gather</code>. After that, it’s again applying <code>tidyr::separate</code> to separate <code>key</code>s from <code>value</code>s. The last step is to convert this long dataset back to a wide one using <code>tidyr::spread</code>. Too long an explanation, better see the code -</p>
 <pre class="r"><code>d3_rev = d2_rev %&gt;%
   gather(key = &quot;temp_var&quot;, value = &quot;kv_pair&quot;, -id, na.rm = TRUE) %&gt;%
   select(-temp_var) %&gt;%
@@ -273,7 +371,7 @@ d2_rev = d3 %&gt;%
 </tr>
 </tbody>
 </table>
-<p>This is very similar to the original clean dataset except for the fact that there are some <code>NA</code> values that we deliberately introduced trying to make this example more generic.</p>
+<p>This is very similar to the original clean dataset <code>d1</code> except for the column order and some <code>NA</code> values (generated cause of missing values we introduced while creating the test dataset, in order to make this example more generic).</p>
 <table>
 <thead>
 <tr class="header">
