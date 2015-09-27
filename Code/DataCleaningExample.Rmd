@@ -1,0 +1,135 @@
+---
+title: "A Data Cleaning Example"
+output: html_document
+---
+
+## Objective: 
+
+Clean a dataset with single column containing multiple variables as delimited key-value pairs.
+
+## Solution:
+
+This can be done using `tidyr` functions `spread`, `gather`, `separate`, etc.
+
+## Code and Explanation:
+
+Creating a test dataset with multiple variables of interest -
+
+```{r clean}
+var1_text = c("Sachin", "Sourav", "Rahul", "Laxman")
+var2_text = c("Virat", "Jinx", "Pujara", "Rohit")
+sep1 = ":"
+sep2 = "|"
+no_rows = 100
+set.seed(9653)
+d1 = data.frame(id = 1:no_rows,
+            retired = sample(x = var1_text, size = 10, replace = TRUE),
+            current = sample(x = var2_text, size = 10, replace = TRUE),
+            garbage = paste0("my_var", 1:no_rows),
+            stringsAsFactors = FALSE)
+
+```
+
+Combining variable names (`keys`) with variable `values` to make it slightly unclean.
+
+```{r unclean1}
+d2 = d1
+var_names = names(d1)[-1]
+d2$var1_pair = paste(var_names[1], d2$retired, sep = sep1)
+d2$var2_pair = paste(var_names[2], d2$current, sep = sep1)
+d2$var3_pair = paste(var_names[3], d2$garbage, sep = sep1)
+
+d2 = d2[, c("id", "var1_pair", "var2_pair", "var3_pair")]
+```
+
+Combining the `key-value` pairs for these variables into a single variable separated by a delimiter.
+
+```{r unclean2}
+d3 = d2
+d3$text = NA
+d3$text[4 * (1:25) - 3] = paste(d3$var1_pair[4 * (1:25) - 3], 
+                                d3$var2_pair[4 * (1:25) - 3], 
+                                d3$var3_pair[4 * (1:25) - 3], 
+                                sep = sep2)
+d3$text[4 * (1:25) - 2] = paste(d3$var2_pair[4 * (1:25) - 2], 
+                                d3$var3_pair[4 * (1:25) - 2], 
+                                sep = sep2)
+d3$text[4 * (1:25) - 1] = paste(d3$var3_pair[4 * (1:25) - 1], 
+                                d3$var2_pair[4 * (1:25) - 1], 
+                                d3$var1_pair[4 * (1:25) - 1], 
+                                sep = sep2)
+d3$text[4 * (1:25)] = d3$var2_pair[4 * (1:25)]
+
+d3 = d3[ , c("id", "text")]
+
+```  
+
+The test dataset now looks like -
+
+```{r op1, echo = FALSE}
+knitr::kable(head(d3))
+```
+
+Couple of assumptions about this dataset make this problem a non-trivial one -
+
+1. Not all the instances (rows) contain **exactly 3** variables (`key-value` pairs).
+2. The order of the variables is **not the same** i.e. `var1` not always followed by `var2` and `var2` is not always followed by `var3`. 
+
+```{r libs, message = FALSE}
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(stringr)
+```
+
+A 2 step solution: 
+
+* step 1: Separating the `key: value pairs` into different columns i.e.
+`key1: value1 | key2: value2`  ----> `key1: value1`            and      `key2: value2`
+
+First we need to know at the most how many key value pairs could be there in a single `text` instance. Once we know the max number of vars, we can use `tidyr::separate` function to separate these pairs -
+
+```{r cleansing1}
+# Finding max number of key: val pairs in a row
+len = max(str_count(string = d3$text, pattern = paste0("[",sep2,"]")))
+vec_names = paste0("X", 1:(len + 1))
+
+d2_rev = d3 %>%
+  separate(col = "text", into = vec_names, sep = paste0("[",sep2,"]"), extra = "drop")
+```
+
+Result after this step -
+
+```{r op2, echo = FALSE}
+knitr::kable(head(d2_rev))
+```
+
+
+* step 2: Separating `value`s from `key`s i.e.
+`key1: value1`  -----> `key1` and `value1`
+
+The next step is to separate `key: val` pairs such that the `val` values are stored in corresponding `key` columns. For this, we'll first need to go from the wide version that we have now to long version of the dataset using `tidyr::gather`. After that, it's again applying `tidyr::separate` to separate `key`s from `value`s. The last step is to convert this long dataset again to a wide one using `tidyr::spread`.
+
+
+```{r cleaning2}
+d3_rev = d2_rev %>%
+  gather(key = "temp_var", value = "kv_pair", -id, na.rm = TRUE) %>%
+  select(-temp_var) %>%
+  separate(col = "kv_pair", into = c("key", "val"), sep = paste0("[",sep1,"]"), extra = "drop") %>%
+  spread(key = "key", value = "val")
+
+```
+
+Final result -
+
+```{r op4, echo = FALSE}
+knitr::kable(head(d3_rev))
+```
+
+This is very similar to the original clean dataset except for the fact that there are some `NA` values that we deliberately introduced trying to make this example more generic.
+
+```{r op_clean, echo = FALSE}
+knitr::kable(head(d1))
+```
+
+
