@@ -1,0 +1,20 @@
+"","field_name","length","columns","field_name_fmt"
+"1","Routing Number",9,"1-9","routing_number"
+"2","Telegraphic Name",18,"10-27","telegraphic_name"
+"3","Customer Name",36,"28-63","customer_name"
+"4","State or territory abbreviation",2,"64-65","state_or_territory_abbreviation"
+"5","City",25,"66-90","city"
+"6","Funds transfer status:
+				Y - Eligible
+				N - Ineligible",1,"91","funds_transfer_status:
+				y_-_eligible
+				n_-_ineligible"
+"7","Funds settlement-only status:
+				S - Settlement-Only",1,"92","funds_settlement-only_status:
+				s_-_settlement-only"
+"8","Book-Entry Securities transfer status:
+				Y - Eligible
+				N - Ineligible",1,"93","book-entry_securities_transfer_status:
+				y_-_eligible
+				n_-_ineligible"
+"9","Date of last revision: YYYYMMDD, or blank",8,"94-101","date_of_last_revision:_yyyymmdd,_or_blank"
